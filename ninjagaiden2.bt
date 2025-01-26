@@ -1,0 +1,130 @@
+//------------------------------------------------
+//--- 010 Editor v14.0 Binary Template
+//
+//      File: *.dat
+//   Authors: My
+//   Version: 1.0
+//   Purpose: Quick
+//  Category: Archive
+// File Mask: *.dat
+//  ID Bytes: 4C 41 4E 47
+//   History: test
+//------------------------------------------------
+typedef struct Header{
+    char magic[8];
+    uint16 endianness;
+    uint16 unknown0A;
+    
+    Printf("Endian: %s", endianness == 255 ? "Big" : "Little");
+    if(endianness == 255) BigEndian();
+    
+    uint32 typeStringOffset;
+    uint32 fileSize;
+    uint32 offsetTableCount;
+    uint32 sizeTableCount;
+    if(offsetTableCount != sizeTableCount){
+        PrintF("Something goes wrong!");
+        return;
+    }
+    uint32 align;
+    uint32 offsetTableStart;
+    uint32 sizeTableStart;
+    FSeek(typeStringOffset);
+    char type[16];
+}header;
+
+typedef struct Header_CTGPACK{
+    local uint32 ctgpackStartPos = FTell();
+    char magic[8];
+    uint16 endianness;
+    uint16 unknown0A;
+    
+    Printf("Endian: %s", endianness == 255 ? "Big" : "Little");
+    if(endianness == 255) BigEndian();
+    
+    uint32 typeStringOffset;
+    uint32 fileSize;
+    uint32 offsetTableCount;
+    uint32 sizeTableCount;
+    if(offsetTableCount != sizeTableCount){
+        PrintF("Something goes wrong!");
+        return;
+    }
+    uint32 align;
+    uint32 offsetTableStart;
+    uint32 sizeTableStart;
+    FSeek(ctgpackStartPos+typeStringOffset);
+    //FSkip(8);
+    char type[16];
+}header_CTGPACK;
+
+typedef struct Header_STRPACK{
+    local uint32 strpackStartPos = FTell();
+    char magic[8];
+    uint16 endianness;
+    uint16 unknown0A;
+    
+    Printf("Endian: %s", endianness == 255 ? "Big" : "Little");
+    if(endianness == 255) BigEndian();
+    
+    uint32 typeStringOffset;
+    uint32 fileSize;
+    uint32 offsetTableCount;
+    uint32 sizeTableCount;
+    if(offsetTableCount != sizeTableCount){
+        PrintF("Something goes wrong!");
+        return;
+    }
+    uint32 align;
+    uint32 offsetTableStart;
+    uint32 sizeTableStart;
+    FSeek(strpackStartPos+typeStringOffset);
+    char type[16];
+}header_STRPACK;
+
+//LANG
+Header hdr<hidden=true>;
+
+FSeek(hdr.offsetTableStart);
+uint32 offsets[hdr.offsetTableCount];
+
+FSeek(hdr.sizeTableStart);
+uint32 sizes[hdr.sizeTableCount]<hidden=true>;
+
+//CTGPACK
+//FSeek(offsets[9]); //RUS
+FSeek(offsets[1]); //ENG
+Header_CTGPACK header_ctg<hidden=true>;
+local uint32 ctgStartPos = FTell() - sizeof(header_ctg);
+
+FSeek(ctgStartPos + header_ctg.offsetTableStart);
+uint32 offsets_ctg[header_ctg.offsetTableCount]<hidden=true>;
+
+FSeek(ctgStartPos + header_ctg.sizeTableStart);
+uint32 sizes_ctg[header_ctg.sizeTableCount]<hidden=true>;
+
+//STRPACK
+FSeek(ctgStartPos + offsets_ctg[0]);
+Header_STRPACK header_str<hidden=true>;
+local uint32 ctrStartPos = FTell() - sizeof(header_str);
+
+FSeek(ctrStartPos + header_str.offsetTableStart);
+uint32 offsets_str[header_str.offsetTableCount]<hidden=true, fgcolor=cGreen, bgcolor=cBlue>;
+
+FSeek(ctrStartPos + header_str.sizeTableStart);
+uint32 sizes_str[header_str.sizeTableCount]<hidden=true, fgcolor=cPurple, bgcolor=cRed>;
+
+//texts
+typedef struct {
+    wchar_t text[(sizes_str[i])/2];
+} String <read=CustomReadString>;
+
+string CustomReadString(String& s) {
+    return s.text;
+}
+
+local int i;
+for(i = 0; i < header_str.offsetTableCount; i++) {
+    FSeek(ctrStartPos + offsets_str[i]);
+    String str<fgcolor=cRed, bgcolor=cBlack>;
+}
